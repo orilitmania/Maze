@@ -1,65 +1,107 @@
 package algorithms.mazeGenerators;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
- * the class is a type of maze
- * it holds all the information of the maze3d
- * @author liron
- *
+ * <h1>Maze3d</h1> kind of a maze implements InteFace "Maze" 3D maze using:
+ * 
+ * @param
+ * 
+ * 			<p>
+ * @author Ori Litman
+ * @version 1.0
  */
-
 public class Maze3d implements Maze {
 
+	// Variables
 	/**
-	 *maze represent the 3d maze as a3d array of int that gets:
-	 * 1 - for the maze walls and 0 - for the maze path
-	 * the currentPos is a temp position that we use to navigate through the maze
-	 * the dims are the maze borders
+	 * This is a int[][][] that represents the maze.
 	 */
 	private int[][][] maze;
+	/**
+	 * This is position that in use during building and searching in the maze.
+	 */
 	private Position currentPos;
 	private Position startPos;
-	private Position goalPos;
-	int dimX, dimY, dimZ;
+	private Position goalPosition;
+	/**
+	 * This is a 3- int's that represents the mazes border. z-number of floors
+	 * in the maze y- number of Rows in the Maze x- number of columns in the
+	 * Maze
+	 */
+	int dimX, dimY, dimZ; // mazes border
 
 	/**
-	 * a constructor for Maze3d
-	 * @param f the number of floors in the maze
-	 * @param r the number of rows in the maze
-	 * @param c the number of columns in the maze
+	 * This C'tor is in use to build the 3dMaze.
+	 * 
+	 * @param f
+	 *            This is the number of floors in the maze
+	 * @param r
+	 *            This is the number of Rows in the maze
+	 * @param c
+	 *            This is the number of Columns in the maze
+	 * @return Maze3d.
 	 */
-	public Maze3d(int f, int r, int c) // f- floor ,r- row ,c-column
+	public Maze3d(int f, int r, int c) // f- floor ,r- row ,c-coulom
 	{
 		this.maze = new int[f][r][c];
 		this.currentPos = new Position(0, 0, 0);
 		this.startPos = new Position(0, 0, 0);
-		this.goalPos = new Position(0, 0, 0);
+		this.goalPosition = new Position(0, 0, 0);
 		this.dimX = c;
 		this.dimY = r;
 		this.dimZ = f;
 	}
 
-	/**
-	 * getter for maze
-	 * @return the 3d array of int maze.
-	 */
+	// in use only for ex2
+	public Maze3d() {
+	}
+
+	public Maze3d(byte[] b) throws IOException {
+
+		// get X, Y, Z from bytes array.
+		this.dimZ = ByteBuffer.wrap(Arrays.copyOfRange(b, 0, 4)).getInt();
+		this.dimY = ByteBuffer.wrap(Arrays.copyOfRange(b, 4, 8)).getInt();
+		this.dimX = ByteBuffer.wrap(Arrays.copyOfRange(b, 8, 12)).getInt();
+
+		// get start position from bytes array.
+		this.startPos = new Position(ByteBuffer.wrap(Arrays.copyOfRange(b, 12, 16)).getInt(),
+				ByteBuffer.wrap(Arrays.copyOfRange(b, 16, 20)).getInt(),
+				ByteBuffer.wrap(Arrays.copyOfRange(b, 20, 24)).getInt());
+
+		// get goal poisiton from bytes array.
+		this.goalPosition = new Position(ByteBuffer.wrap(Arrays.copyOfRange(b, 24, 28)).getInt(),
+				ByteBuffer.wrap(Arrays.copyOfRange(b, 28, 32)).getInt(),
+				ByteBuffer.wrap(Arrays.copyOfRange(b, 32, 36)).getInt());
+
+		// get maze from bytes array.
+		this.maze = new int[dimZ][dimY][dimX];
+		int counter = 36; // the last index we stopped reading from bytes array.
+
+		for (int i = 0; i < this.dimZ; i++) {
+			for (int j = 0; j < this.dimY; j++) {
+				for (int k = 0; k < this.dimX; k++) {
+					this.maze[i][j][k] = (int) b[counter];
+					counter++;
+				}
+			}
+		}
+	}
+
+	// Setters and getters
 	public int[][][] getMaze() {
 		return maze;
 	}
 
-	/**
-	 * getter for currentPos
-	 * @return the current position we are in the maze
-	 */
 	public Position getCurrentPos() {
 		return currentPos;
 	}
 
-	/**
-	 * 
-	 * @param Pos
-	 */
 	public void setCurrentPos(Position Pos) {
 		this.currentPos.setPos(Pos.getZ(), Pos.getY(), Pos.getX());
 	}
@@ -73,7 +115,7 @@ public class Maze3d implements Maze {
 	}
 
 	public Position getGoalPosition() {
-		return goalPos;
+		return goalPosition;
 	}
 
 	public void setStartPosition(Position startPos) {
@@ -81,15 +123,16 @@ public class Maze3d implements Maze {
 	}
 
 	public void setGoalPosition(Position goalPosition) {
-		this.goalPos = new Position(goalPosition.getZ(), goalPosition.getY(), goalPosition.getX());
+		this.goalPosition = new Position(goalPosition.getZ(), goalPosition.getY(), goalPosition.getX());
 	}
-	
-	
-	
+
 	// other methods
 
-	
-	// sets all the maze with 1 - walls
+	/**
+	 * This method is in use to build walls in all the maze. in use during the
+	 * generate part of the maze - the first part is building all maze with
+	 * walls then each method is finding a path
+	 */
 	public void init() {
 		for (int i = 0; i < dimZ; i++) {
 			for (int j = 0; j < dimY; j++) {
@@ -112,26 +155,17 @@ public class Maze3d implements Maze {
 	// printing the maze by floors separate by "****" , start and goal printed
 	// as "2" , walls - "1" , free path - "0"
 	public void printMaze() {
-		System.out.println("****************");
-		System.out.println("0-maze path");
-		System.out.println("1-maze wall");
-		System.out.println("2-maze entrance");
-		System.out.println("4-maze exit");
-		System.out.println("****************");
+		System.out.println("~~~~~~~~~~~~~~");
 		for (int i = 0; i < this.dimZ; i++) {
+			System.out.println("Floor number: " + i);
 			for (int j = 0; j < this.dimY; j++) {
 				for (int k = 0; k < this.dimX; k++) {
-					if (new Position(i, j, k).equals(getStartPosition()))
-						System.out.print(this.maze[i][j][k] + 2);
-					else if (new Position(i, j, k).equals(getGoalPosition()))
-							System.out.print(this.maze[i][j][k] + 4);
-						else
-							System.out.print(this.maze[i][j][k]);
+					System.out.print(this.maze[i][j][k]);
 				}
 				System.out.println("");
 
 			}
-			System.out.println("****************");
+			System.out.println("~~~~~~~~~~~~~~");
 		}
 	}
 
@@ -224,8 +258,11 @@ public class Maze3d implements Maze {
 		}
 	}
 
-	// add to array list the possible moves (looks for "0" around the position)
-	// - use in ex1 , generate ,search algorithms
+	@Override
+	/** {@inheritDoc} */
+	/**
+	 * add to array list the possible moves (looks for "0" around the position)
+	 */
 	public ArrayList<String> getPossibleMoves(Position p) {
 
 		// variables, define ArrayList with strings.
@@ -296,6 +333,75 @@ public class Maze3d implements Maze {
 			}
 		}
 		return maze2d;
+	}
+
+	public byte[] toByteArray() throws IOException {
+
+		// variables
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		DataOutputStream data = new DataOutputStream(out);
+
+		// write maze size : x, y, z.
+		data.writeInt(this.dimZ);
+		data.writeInt(this.dimY);
+		data.writeInt(this.dimX);
+
+		// write start position
+		data.writeInt(this.startPos.getZ());
+		data.writeInt(this.startPos.getY());
+		data.writeInt(this.startPos.getX());
+
+		// write goal position
+		data.writeInt(this.goalPosition.getZ());
+		data.writeInt(this.goalPosition.getY());
+		data.writeInt(this.goalPosition.getX());
+
+		// write maze
+		for (int i = 0; i < this.dimZ; i++) {
+			for (int j = 0; j < this.dimY; j++) {
+				for (int k = 0; k < this.dimX; k++) {
+					data.write(this.maze[i][j][k]);
+				}
+			}
+		}
+
+		return out.toByteArray();
+	}
+
+	public boolean equals(Object obj) {
+
+		if ((obj instanceof Maze3d) == false) {
+			return false;
+			
+		} 
+		
+		else if ((this.dimX != ((Maze3d) obj).dimX) || (this.dimY != ((Maze3d) obj).dimY)
+				|| (this.dimZ != ((Maze3d) obj).dimZ)) {
+			return false;
+		} 
+		
+		
+		else if (this.startPos.equals(((Maze3d) obj).startPos) == false
+				|| this.goalPosition.equals(((Maze3d) obj).goalPosition) == false) {
+			return false;
+		} 
+		
+		
+		else {
+			for (int i = 0; i < this.dimZ; i++) {
+				for (int j = 0; j < this.dimY; j++) {
+					for (int k = 0; k < this.dimX; k++) {
+						if (this.maze[i][j][k] != ((Maze3d) obj).maze[i][j][k]) {
+							return false;
+						}
+					}
+				}
+			}
+		}
+		
+		
+		return true;
+
 	}
 
 }
